@@ -145,7 +145,6 @@ module.exports = (_ => {
 					console.log(e.instance.props);
 					BDFDB.PatchUtils.patch(this, e.instance.props, "onSubmit", {instead: e2 => {
 						if (e2.methodArguments[0].value != "" && e.instance.props.type.analyticsName != "edit"){
-							console.log(e2.methodArguments[0]);
 							e2.stopOriginalMethodCall();
 							let quirkMessage = this.formatText(e2.methodArguments[0].value);
 							e2.originalMethod(Object.assign({}, e2.methodArguments[0], {value: quirkMessage}));
