@@ -3,6 +3,9 @@
 		"general": {
 			"prefix": "",
 			"suffix": ""
+		},
+		"sr": {
+			"searchReplace": ""
 		}
 	}
 }

@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.1.1
+*@version 0.2.0
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -20,7 +20,7 @@
 		//create another text prompt called searchReplace, description of Search/Replace, note of "Put ;=>; between the thing you want to replace and what you want to replace it with. Put ;==>; between different entries."
 		//split searchReplace by ;==>; into an array
 			//this goes before the suffix & prefix so they don't get messed up
-		//go through each cell of the array and split them by ;=>; (s;=>;r) 0.2.2
+		//go through each cell of the array and split them by ;=>; (s;=>;r) 0.2.1
 			//then, replace each instance of s in the string with r.
 	//great;=>;gr8;==>;ate;=>;8;==>;:);=>;::::)
 //check for empty search/replace cells and disregard them - 0.2.1
@@ -78,7 +78,10 @@ module.exports = (_ => {
 				this.defaults = {
 					general: {
 						prefix:		{value: "", 	description: "Prefix"},
-						suffix:		{value: "", 		description: "Suffix"},
+						suffix:		{value: "", 	description: "Suffix"},
+					},
+					sr: {
+						searchReplace: {value: "",	description: "Search/Replace", note:"Put ;=>; between the searcher and replacer."},
 					}
 				};
 				this.modulePatches = {
@@ -115,6 +118,15 @@ module.exports = (_ => {
 							value: this.settings.general[key]
 						}));
 						
+						settingsItems.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsSaveItem, {
+							type: "TextInput",
+							keys: ["sr", "searchReplace"],
+							plugin: this,
+							label: this.defaults.sr.searchReplace.description,
+							note: this.defaults.sr.searchReplace.note,
+							value: this.settings.sr.searchReplace
+						}));
+						
 						return settingsItems;
 						}
 					});
@@ -123,23 +135,35 @@ module.exports = (_ => {
 			processChannelTextAreaContainer (e) {
 				if (!e.returnvalue) {
 					BDFDB.PatchUtils.patch(this, e.instance.props, "onSubmit", {instead: e2 => {
-						if(this.settings.general.prefix == "" && this.settings.general.suffix == ""){
-							return e2.callOriginalMethodAfterwards();
-						}else{
-							e2.stopOriginalMethodCall();
-							let quirkMessage = this.formatText(e2.methodArguments[0].value);
-							e2.originalMethod({stickers: [], uploads: [], value: quirkMessage}); 
-							return Promise.resolve({
-								shouldClear: true,
-								shouldRefocus: true
-							});
-						}
+						e2.stopOriginalMethodCall();
+						let quirkMessage = this.formatText(e2.methodArguments[0].value);
+						e2.originalMethod({stickers: [], uploads: [], value: quirkMessage}); 
+						return Promise.resolve({
+							shouldClear: true,
+							shouldRefocus: true
+						});
 					}}, {noCache: true});
 				}
 			}
 			
 			formatText(text){
-				let fText = this.settings.general.prefix + text + this.settings.general.suffix;
+				let preProcess = text;
+				let postProcess = "";
+				if(this.settings.sr.searchReplace != ""){
+					let searchReplaceKey = this.settings.sr.searchReplace.split(";=>;");
+					if (searchReplaceKey.length > 1){
+						postProcess = preProcess.replace(searchReplaceKey[0], searchReplaceKey[1]);
+					} else
+					{
+						postProcess = preProcess;
+					}
+				}else{
+					postProcess = preProcess;
+				}
+				let fText = postProcess;
+				if (this.settings.general.prefix != "" || this.settings.general.suffix != ""){
+					fText = this.settings.general.prefix + postProcess + this.settings.general.suffix;
+				}
 				return fText;
 			}
 			
