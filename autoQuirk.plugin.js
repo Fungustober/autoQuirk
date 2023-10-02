@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.2.0
+*@version 0.2.1
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -16,20 +16,28 @@
 //things todo after that:
 //upload to github
 //let the plugin automatically download the required libraries - DONE
-//let the user specify simple search/replace commands -- put ;==>; between each entry and ;=>; between the searcher and the replacer 0.2.0
+//let the user specify simple search/replace commands -- put ;==>; between each entry and ;=>; between the searcher and the replacer - DONE
 		//create another text prompt called searchReplace, description of Search/Replace, note of "Put ;=>; between the thing you want to replace and what you want to replace it with. Put ;==>; between different entries."
 		//split searchReplace by ;==>; into an array
 			//this goes before the suffix & prefix so they don't get messed up
-		//go through each cell of the array and split them by ;=>; (s;=>;r) 0.2.1
+		//go through each cell of the array and split them by ;=>; (s;=>;r) - DONE
 			//then, replace each instance of s in the string with r.
 	//great;=>;gr8;==>;ate;=>;8;==>;:);=>;::::)
-//check for empty search/replace cells and disregard them - 0.2.1
+//check for empty search/replace cells and disregard them - DONE
 
 //let the user do more advanced things
+	//turn the searcher of a searchReplaceKey into a regex statement so users can use regex
 
 module.exports = (_ => {
 	const changeLog = {
+		/*
+		New Additions:
+		You can now specify multiple Search and Replace expressions by separating them with ;==>;
 		
+		Fixes:
+        Editing a message now no longer adds a prefix and/or a suffix.
+		Users can now send files and stickers while this plugin is active (whoops).
+        */
 	};
 
 	return !window.BDFDB_Global || (!window.BDFDB_Global.loaded && !window.BDFDB_Global.started) ? class {
@@ -81,7 +89,7 @@ module.exports = (_ => {
 						suffix:		{value: "", 	description: "Suffix"},
 					},
 					sr: {
-						searchReplace: {value: "",	description: "Search/Replace", note:"Put ;=>; between the searcher and replacer."},
+						searchReplace: {value: "",	description: "Search/Replace", note:"Put ;=>; between searcher and replacer. Put ;==>; between entries."},
 					}
 				};
 				this.modulePatches = {
@@ -134,14 +142,19 @@ module.exports = (_ => {
 			
 			processChannelTextAreaContainer (e) {
 				if (!e.returnvalue) {
+					console.log(e.instance.props);
 					BDFDB.PatchUtils.patch(this, e.instance.props, "onSubmit", {instead: e2 => {
-						e2.stopOriginalMethodCall();
-						let quirkMessage = this.formatText(e2.methodArguments[0].value);
-						e2.originalMethod({stickers: [], uploads: [], value: quirkMessage}); 
-						return Promise.resolve({
-							shouldClear: true,
-							shouldRefocus: true
-						});
+						if (e2.methodArguments[0].value != "" && e.instance.props.type.analyticsName != "edit"){
+							console.log(e2.methodArguments[0]);
+							e2.stopOriginalMethodCall();
+							let quirkMessage = this.formatText(e2.methodArguments[0].value);
+							e2.originalMethod(Object.assign({}, e2.methodArguments[0], {value: quirkMessage}));
+							return Promise.resolve({
+								shouldClear: true,
+								shouldRefocus: true
+							});
+						}
+						else return e2.callOriginalMethodAfterwards();
 					}}, {noCache: true});
 				}
 			}
@@ -150,12 +163,13 @@ module.exports = (_ => {
 				let preProcess = text;
 				let postProcess = "";
 				if(this.settings.sr.searchReplace != ""){
-					let searchReplaceKey = this.settings.sr.searchReplace.split(";=>;");
-					if (searchReplaceKey.length > 1){
-						postProcess = preProcess.replace(searchReplaceKey[0], searchReplaceKey[1]);
-					} else
-					{
-						postProcess = preProcess;
+					postProcess = preProcess;
+					let searchReplaceList = this.settings.sr.searchReplace.split(";==>;");
+					for (let srKey in searchReplaceList){
+						let searchReplaceKey = searchReplaceList[srKey].split(";=>;");
+						if (searchReplaceKey.length > 1){
+							postProcess = postProcess.replaceAll(searchReplaceKey[0], searchReplaceKey[1]);
+						}
 					}
 				}else{
 					postProcess = preProcess;
