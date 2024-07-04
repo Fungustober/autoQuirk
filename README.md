@@ -6,6 +6,6 @@ A discord plugin that automatically styles your text like Homestuck trolls. Curr
 
 Anything before the > is the text that you want to replace. Anything after the > but before the ; is what you want to replace that text with. If you want to replace > or ; you'll need to put \ before them, like so:
 
-A\>>A-\>;A\;>A:;     This turns A> into A-> and A; into A:
+A\\>>A-\\>;A\\;>A:;     This turns A> into A-> and A; into A:
 
 Warning: If you try placing a space between a ; and the next entry (like a>4; e>3;) then it will factor that space into the text to be replaced, meaning it will only replace instances of " e" and not "e".
