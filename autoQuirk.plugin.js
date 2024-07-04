@@ -90,7 +90,7 @@ module.exports = (_ => {
 						suffix:		{value: "", 	description: "Suffix"},
 					},
 					sr: {
-						searchReplace: {value: "",	description: "Search/Replace", note:"Put > between searcher and replacer. Put ; between entries."},
+						searchReplace: {value: "",	description: "Search/Replace", note:"Put > between searcher and replacer. Put ; between entries. DO NOT PUT A SPACE BETWEEN THE ; AND THE NEXT ENTRY. Put \\ before any > or ; that you want to be replaced by something else or replace something else."},
 					}
 				};
 				this.modulePatches = {
