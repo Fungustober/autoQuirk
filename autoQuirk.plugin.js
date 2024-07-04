@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.2.1
+*@version 0.3.0
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -31,12 +31,8 @@
 module.exports = (_ => {
 	const changeLog = {
 		/*
-		New Additions:
-		You can now specify multiple Search and Replace expressions by separating them with ;==>;
-		
 		Fixes:
-        Editing a message now no longer adds a prefix and/or a suffix.
-		Users can now send files and stickers while this plugin is active (whoops).
+        Redid the text formatting system.
         */
 	};
 
@@ -94,7 +90,7 @@ module.exports = (_ => {
 						suffix:		{value: "", 	description: "Suffix"},
 					},
 					sr: {
-						searchReplace: {value: "",	description: "Search/Replace", note:"Put ;=>; between searcher and replacer. Put ;==>; between entries."},
+						searchReplace: {value: "",	description: "Search/Replace", note:"Put > between searcher and replacer. Put ; between entries."},
 					}
 				};
 				this.modulePatches = {
@@ -166,14 +162,37 @@ module.exports = (_ => {
 			formatText(text){
 				let preProcess = text;
 				let postProcess = "";
-				if(this.settings.sr.searchReplace != ""){
+				let sr = this.settings.sr.searchReplace;
+				//TODO: Add various handlers for various cases
+				if(sr != ""){
 					postProcess = preProcess;
-					let searchReplaceList = this.settings.sr.searchReplace.split(";==>;");
-					for (let srKey in searchReplaceList){
-						let searchReplaceKey = searchReplaceList[srKey].split(";=>;");
-						if (searchReplaceKey.length > 1){
-							postProcess = postProcess.replaceAll(searchReplaceKey[0], searchReplaceKey[1]);
+					let escaped = false;
+					let replace = {};
+					let active = [""];
+					for(let i=0; i<sr.length; i++) {
+						if(escaped){
+							active[active.length-1] += sr[i];
+							escaped = false;
 						}
+						else{
+							switch(sr[i]){
+								case "\\":
+									escaped = true;
+									break;
+								case ">":
+									active.push("");
+									break;
+								case ";":
+									replace[active[0]] = active[1];
+									active = [""];
+									break;
+								default:
+									active[active.length-1] += sr[i];
+							}
+						}
+					}
+					for(let key in replace){
+						postProcess = postProcess.replaceAll(key, replace[key]);
 					}
 				}else{
 					postProcess = preProcess;
