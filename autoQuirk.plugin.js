@@ -80,7 +80,7 @@ module.exports = (_ => {
 		}
 	} : (([Plugin, BDFDB]) => {
 	
-		return class SplitLargeMessages extends Plugin {
+		return class AutoQuirk extends Plugin {
 			
 			onLoad(){
 				this.defaults = {
