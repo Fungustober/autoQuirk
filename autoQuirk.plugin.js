@@ -1,26 +1,87 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.4.1
+*@version 0.4.2
 *@description Automatically style your text like Homestuck trolls.
 */
 
 //TODO:
 // Remove old to-do list - DONE
-// Comment everything
+// Comment everything - MOSTLY DONE UNTIL I ADD MORE STUFF
 // Add extra handling to protect the user from themselves - DONE
 // Remove the BDFDB Library stuff and replace it with our own code
-	// 1. Replace the code that allows us to do the message stuff
-	// 2. Replace the code that allows us to do the settings panel stuff
+	// 1. Replace the code that allows us to do the settings panel stuff - PARTLY DONE
+	// 2. Replace the code that allows us to do the message stuff
 	// 3. Remove the code that gets the library
 
 module.exports = (_ => {
 	const changeLog = {
 		/*
 		Fixes:
-        Added more error handling.
+        - Added more error handling.
+		Shiny New Things:
+		- Slowly working on removing the outside library dependencies.
         */
 	};
+	
+	//Settings creation functions
+	
+	function createSettingsPanel(box1, box2, box3, note){
+				
+		//create the holder div
+		let settingsPanel = document.createElement("div");
+		//set its id
+		settingsPanel.id = "autoQuirk_Settings";
+		
+		//populate it with the child elements
+		settingsPanel.append(box1, box2, box3, note);
+		
+		return settingsPanel;
+	}
+			
+	function createTextBox(boxName, boxLabel, boxValue){
+		//TO DO: Add CSS styling to elements
+		
+		//create a div to hold the text box stuff
+		let textBoxElement = document.createElement("div");
+		textBoxElement.classList.add("setting");
+		textBoxElement.classList.add("fungustober");
+				
+		//create the label for the text box
+		let elementLabel = document.createElement("span");
+		elementLabel.textContent = boxLabel;
+				
+		//create the actual text box
+		let elementInput = document.createElement("input");
+		elementInput.type = "text";
+		elementInput.name = boxName;
+		//add the data and a listener to update the data
+		elementInput.value = boxValue;
+		elementInput.addEventListener("change", () => {
+			boxValue = elementInput.value;
+		});
+		
+		//parent the label and text box to the parent div
+		textBoxElement.append(elementLabel, elementInput);
+		
+		//send the element back
+		return textBoxElement;
+	}
+			
+	function createNote(noteText){
+		//TO DO: Add CSS styling to elements
+		
+		//create a div to hold the note
+		let noteElement = document.createElement("div");
+		//create the actual text bit
+		let elementText = document.createElement("span");
+		elementText.textContent = noteText;
+				
+		noteElement.append(elementText);
+				
+		//send it back now
+		return noteElement;
+	}
 
 	return !window.BDFDB_Global || (!window.BDFDB_Global.loaded && !window.BDFDB_Global.started) ? class {
 		constructor (meta) {for (let key in meta) this[key] = meta[key];}
@@ -96,35 +157,29 @@ module.exports = (_ => {
 			
 			onStop () {
 				BDFDB.PatchUtils.forceAllUpdates(this);
-			} 
+			}
 			
-			getSettingsPanel(collapseStates = {}) {
-					let settingsPanel;
-					return settingsPanel = BDFDB.PluginUtils.createSettingsPanel(this, {
-						collapseStates: collapseStates,
-						children: _ => {
-							let settingsItems = [];
-						
-						for (let key in this.defaults.general) settingsItems.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsSaveItem, {
-							type: "TextInput",
-							keys: ["general", key],
-							plugin: this,
-							label: this.defaults.general[key].description,
-							value: this.settings.general[key]
-						}));
-						
-						settingsItems.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SettingsSaveItem, {
-							type: "TextInput",
-							keys: ["sr", "searchReplace"],
-							plugin: this,
-							label: this.defaults.sr.searchReplace.description,
-							note: this.defaults.sr.searchReplace.note,
-							value: this.settings.sr.searchReplace
-						}));
-						
-						return settingsItems;
-						}
-					});
+			getSettingsPanel() {
+				
+				//get all of the information in short names so I don't have to write things over and over
+				let pfix = this.defaults.general.prefix;
+				let sfix = this.defaults.general.suffix;
+				let srp = this.defaults.sr.searchReplace;
+	
+				let settings = BdApi.Data.load("autoQuirk", "all");
+		
+				let pSettings = settings.general.prefix;
+				let sSettings = settings.general.suffix;
+				let rSettings = settings.sr.searchReplace;
+				
+				let settingsPanel = createSettingsPanel(
+				createTextBox("prefix", pfix.description, pSettings),
+				createTextBox("suffix", sfix.description, sSettings),
+				createTextBox("searchReplace", srp.description, rSettings),
+				createNote(srp.note)
+				);
+				
+				return settingsPanel;
 			}
 			
 			processChannelTextAreaContainer (e) {
@@ -152,9 +207,9 @@ module.exports = (_ => {
 				}
 			}
 			
-			formatText(text){
+			formatText(messageText){
 				//put the message into a variable
-				let postProcess = text;
+				let postProcess = messageText;
 				//put the search/replace string into a variable
 				let sr = this.settings.sr.searchReplace;
 				//TODO: Add various handlers for various cases
