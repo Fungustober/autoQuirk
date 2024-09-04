@@ -1,38 +1,24 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.3.0
+*@version 0.4.0
 *@description Automatically style your text like Homestuck trolls.
 */
 
-//minimum viable product todo: 
-//get a prefix and suffix option - DONE
-//if there's no prefix or suffix, don't do anything - DONE
-//otherwise, catch the message as it's being sent - DONE
-//add the prefix to the beginning if there is one, and add the suffix to the end if there is one - DONE
-//send the message for real this time - DONE
-
-
-//things todo after that:
-//upload to github
-//let the plugin automatically download the required libraries - DONE
-//let the user specify simple search/replace commands -- put ;==>; between each entry and ;=>; between the searcher and the replacer - DONE
-		//create another text prompt called searchReplace, description of Search/Replace, note of "Put ;=>; between the thing you want to replace and what you want to replace it with. Put ;==>; between different entries."
-		//split searchReplace by ;==>; into an array
-			//this goes before the suffix & prefix so they don't get messed up
-		//go through each cell of the array and split them by ;=>; (s;=>;r) - DONE
-			//then, replace each instance of s in the string with r.
-	//great;=>;gr8;==>;ate;=>;8;==>;:);=>;::::)
-//check for empty search/replace cells and disregard them - DONE
-
-//let the user do more advanced things
-	//turn the searcher of a searchReplaceKey into a regex statement so users can use regex
+//TODO:
+// Remove old to-do list - DONE
+// Comment everything
+// Add extra handling to protect the user from themselves - DONE
+// Remove the BDFDB Library stuff and replace it with our own code
+	// 1. Replace the code that allows us to do the message stuff
+	// 2. Replace the code that allows us to do the settings panel stuff
+	// 3. Remove the code that gets the library
 
 module.exports = (_ => {
 	const changeLog = {
 		/*
 		Fixes:
-        Redid the text formatting system.
+        Added more error handling.
         */
 	};
 
@@ -160,47 +146,107 @@ module.exports = (_ => {
 			}
 			
 			formatText(text){
-				let preProcess = text;
-				let postProcess = "";
+				//put the message into a variable
+				let postProcess = text;
+				//put the search/replace string into a variable
 				let sr = this.settings.sr.searchReplace;
 				//TODO: Add various handlers for various cases
+				//check to see if the user actually has anything in the search/replace text box
 				if(sr != ""){
-					postProcess = preProcess;
+					//make sure that the search/replace string ends in ;
+					if(!sr.match(/;$/)){
+						sr += ";";
+					}
+					//instantiate variables for our process
+						//keeps track of whether or not the user has used \ as an escape character
 					let escaped = false;
+						//the dictionary; hold the searchers and replacers
 					let replace = {};
+						//the buffer; temporarily holds text
 					let active = [""];
-					for(let i=0; i<sr.length; i++) {
+					//iterate over the search/replace string
+					for(let i=0; i<sr.length; i++){
+						//put the current character into a temporary variable
+						let currentChar = sr[i];
+						//has the user entered an escape character?
 						if(escaped){
-							active[active.length-1] += sr[i];
+							//if so, handle the following like normal text
+							active[active.length-1] += currentChar;
+							//then reset escaped
 							escaped = false;
 						}
+						//otherwise
 						else{
+							//do things based on what the character is
 							switch(sr[i]){
+								//if it's a \, then
 								case "\\":
+									//tell the system the user has entered an escape character
 									escaped = true;
 									break;
+								//if it's a >, then
 								case ">":
-									active.push("");
+									//check to see if we've already switched to the replacer portion of the buffer
+									//(or, to put it simply, if the user forgot to escape the > in the replacer)
+									if (active.length > 1){
+										//if so, treat it like a normal character
+										active[active.length-1] += currentChar;
+									}
+									//otherwise
+									else{
+										//put a blank into the end of the buffer, so we can separate the searcher and replacer
+										active.push("");
+									}
 									break;
+								//if it's a ;, then
 								case ";":
-									replace[active[0]] = active[1];
-									active = [""];
+									//check to see if we're still on the searcher portion of the buffer
+									//(or, to put it simply, if the user forgot to escape the ; in the searcher)
+									if (active.length == 1){
+										//if so, treat it like a normal character
+										active[active.length-1] += currentChar;
+									}
+									//otherwise
+									else{
+										//check to see if the searcher already exists
+										if(replace.hasOwnProperty(active[0])){
+											//if so, let the user know
+											let errorMessage = `Searcher ${active[0]} has more than one replacer! `;
+											errorMessage += "The second will overwrite the first.";
+											BdApi.showToast(errorMessage, {type:"warning", timeout:5000});
+										}
+										//link the searcher and replacer in the dictionary
+										replace[active[0]] = active[1];
+										//reset the buffer
+										active = [""];
+									}
 									break;
+								//otherwise,
 								default:
+									//add the character to the end of the buffer
 									active[active.length-1] += sr[i];
 							}
 						}
 					}
+					//once the s/r string has been operated on, loop through all the searchers in the dictionary
 					for(let key in replace){
+						//and then replace all instances of the searcher found in the message with the replacer
 						postProcess = postProcess.replaceAll(key, replace[key]);
 					}
-				}else{
-					postProcess = preProcess;
 				}
+				//put the processed text into another variable
 				let fText = postProcess;
-				if (this.settings.general.prefix != "" || this.settings.general.suffix != ""){
-					fText = this.settings.general.prefix + postProcess + this.settings.general.suffix;
+				//has the user put something into the prefix box?
+				if (this.settings.general.prefix != ""){
+					//if so, add it to the front of the string
+					ftext = this.settings.general.prefix + ftext;
 				}
+				//has the user put something into the suffix box?
+				if (this.settings.general.suffix != ""){
+					//if so, add it to the end of the string
+					fText += this.settings.general.suffix;
+				}
+				//return the final text
 				return fText;
 			}
 			
