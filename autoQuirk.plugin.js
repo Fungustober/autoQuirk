@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.4.0
+*@version 0.4.1
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -130,10 +130,17 @@ module.exports = (_ => {
 			processChannelTextAreaContainer (e) {
 				if (!e.returnvalue) {
 					console.log(e.instance.props);
+					//when the user sends a message, instead
 					BDFDB.PatchUtils.patch(this, e.instance.props, "onSubmit", {instead: e2 => {
+						//check to see if there's actually text in the message, and that the user isn't editing the message
+						//the first is done to prevent unneeded calculations
+						//and the second is to prevent the prefix & suffix from applying ad infinitum
 						if (e2.methodArguments[0].value != "" && e.instance.props.type.analyticsName != "edit"){
+							//if the checks pass, stop discord from sending the message
 							e2.stopOriginalMethodCall();
+							//process the text
 							let quirkMessage = this.formatText(e2.methodArguments[0].value);
+							//then send the message but with the processed text instead
 							e2.originalMethod(Object.assign({}, e2.methodArguments[0], {value: quirkMessage}));
 							return Promise.resolve({
 								shouldClear: true,
