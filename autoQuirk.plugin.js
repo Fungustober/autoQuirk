@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.4.2
+*@version 0.4.3
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -10,23 +10,40 @@
 // Comment everything - MOSTLY DONE UNTIL I ADD MORE STUFF
 // Add extra handling to protect the user from themselves - DONE
 // Remove the BDFDB Library stuff and replace it with our own code
-	// 1. Replace the code that allows us to do the settings panel stuff - PARTLY DONE
+	// 1. Replace the code that allows us to do the settings panel stuff - DONE
 	// 2. Replace the code that allows us to do the message stuff
 	// 3. Remove the code that gets the library
 
 module.exports = (_ => {
+	
+	
 	const changeLog = {
 		/*
 		Fixes:
         - Added more error handling.
 		Shiny New Things:
 		- Slowly working on removing the outside library dependencies.
+		- Made the settings screen look good.
+		- Simplified the settings structure.
         */
 	};
 	
-	//Settings creation functions
+	const tempSettings = {
+		prefix: "",
+		suffix: "",
+		searchReplace: ""
+	};
 	
-	function createSettingsPanel(box1, box2, box3, note){
+	//Settings creation functions & variables
+	
+	//PUT CONSTS HERE
+	const wrapperStyle = "margin-bottom: 8px; width: 100%;";
+	const boxLabelStyle = "position: relative; display: inline; flex: 1 1 auto; color: var(--header-primary); line-height: 24px; font-size: 16px; display:inline-block; margin-left:0; margin-right: auto; width:45%;";
+	const boxStyle = "position: relative; padding: 8px 8px 8px 8px; font-size: 16px; color: var(--header-secondary); background-color: var(--input-background); display:inline-block; margin-right:0; margin-left: auto; width:50%;";
+	const noteHeaderStyle = "color: var(--header-primary); line-height: 12px; font-size: 14px; font-weight: bold; margin-top: 8px;";
+	const noteStyle = "color: var(--header-secondary); line-height: 12px; font-size: 14px;";
+	
+	function createSettingsPanel(box1, box2, box3, goop){
 				
 		//create the holder div
 		let settingsPanel = document.createElement("div");
@@ -34,7 +51,7 @@ module.exports = (_ => {
 		settingsPanel.id = "autoQuirk_Settings";
 		
 		//populate it with the child elements
-		settingsPanel.append(box1, box2, box3, note);
+		settingsPanel.append(goop, box1, box2, box3);
 		
 		return settingsPanel;
 	}
@@ -46,19 +63,23 @@ module.exports = (_ => {
 		let textBoxElement = document.createElement("div");
 		textBoxElement.classList.add("setting");
 		textBoxElement.classList.add("fungustober");
+		textBoxElement.style = wrapperStyle;
 				
 		//create the label for the text box
-		let elementLabel = document.createElement("span");
+		let elementLabel = document.createElement("div");
 		elementLabel.textContent = boxLabel;
+		elementLabel.style = boxLabelStyle;
 				
 		//create the actual text box
 		let elementInput = document.createElement("input");
 		elementInput.type = "text";
 		elementInput.name = boxName;
+		elementInput.style = boxStyle;
 		//add the data and a listener to update the data
 		elementInput.value = boxValue;
 		elementInput.addEventListener("change", () => {
-			boxValue = elementInput.value;
+			tempSettings[boxName] = elementInput.value;
+			BdApi.Data.save("autoQuirk", "settings", tempSettings);
 		});
 		
 		//parent the label and text box to the parent div
@@ -68,19 +89,37 @@ module.exports = (_ => {
 		return textBoxElement;
 	}
 			
-	function createNote(noteText){
+	function createNote(noteText, style){
 		//TO DO: Add CSS styling to elements
-		
-		//create a div to hold the note
+		//div
 		let noteElement = document.createElement("div");
+		
 		//create the actual text bit
-		let elementText = document.createElement("span");
-		elementText.textContent = noteText;
+		let textElement = document.createElement("span");
+		textElement.textContent = noteText;
+		textElement.style = style;
 				
-		noteElement.append(elementText);
-				
+		noteElement.append(textElement);
+		
 		//send it back now
 		return noteElement;
+	}
+	
+	function createGroup(elementsToGroup){
+		//create a div
+		let groupElement = document.createElement("div");
+		//give it the appropriate style
+		groupElement.style = wrapperStyle;
+		
+		//shove the elements into it. Note: doesn't work with input boxes.
+		for(let i=0; i<elementsToGroup.length; i++){
+			//console.log(elementsToGroup[i]);
+			let temp = elementsToGroup[i].outerHTML;
+			//console.log(temp);
+			groupElement.innerHTML += temp;
+			//console.log(groupElement.innerHTML);
+		}
+		return groupElement;
 	}
 
 	return !window.BDFDB_Global || (!window.BDFDB_Global.loaded && !window.BDFDB_Global.started) ? class {
@@ -132,13 +171,9 @@ module.exports = (_ => {
 			
 			onLoad(){
 				this.defaults = {
-					general: {
-						prefix:		{value: "", 	description: "Prefix"},
-						suffix:		{value: "", 	description: "Suffix"},
-					},
-					sr: {
-						searchReplace: {value: "",	description: "Search/Replace", note:"Put > between searcher and replacer. Put ; between entries. DO NOT PUT A SPACE BETWEEN THE ; AND THE NEXT ENTRY. Put \\ before any > or ; that you want to be replaced by something else or replace something else."},
-					}
+					prefix:		{value: "", 	description: "Prefix"},
+					suffix:		{value: "", 	description: "Suffix"},
+					searchReplace: {value: "",	description: "Search/Replace", note1:"How to Use:", note2:"- Put > between searcher and replacer.", note3:"- Put ; between entries.", note5:"- Do NOT put a space between the ; and the next entry.", note4:"- Put \\ before any > or ; that you want to be replaced by something else or replace something else."}
 				};
 				this.modulePatches = {
 					before: [
@@ -162,21 +197,34 @@ module.exports = (_ => {
 			getSettingsPanel() {
 				
 				//get all of the information in short names so I don't have to write things over and over
-				let pfix = this.defaults.general.prefix;
-				let sfix = this.defaults.general.suffix;
-				let srp = this.defaults.sr.searchReplace;
-	
-				let settings = BdApi.Data.load("autoQuirk", "all");
-		
-				let pSettings = settings.general.prefix;
-				let sSettings = settings.general.suffix;
-				let rSettings = settings.sr.searchReplace;
+				let pfix = this.defaults.prefix;
+				let sfix = this.defaults.suffix;
+				let srp = this.defaults.searchReplace;
 				
+				//load the settings
+				let loadedSettings = BdApi.Data.load("autoQuirk", "settings");
+				
+				//put them into variables
+				let pSettings = loadedSettings["prefix"];
+				//and also load the temp settings with the correct values
+				tempSettings["prefix"] = pSettings;
+				let sSettings = loadedSettings["suffix"];
+				tempSettings["suffix"] = sSettings;
+				let rSettings = loadedSettings["searchReplace"];
+				tempSettings["searchReplace"] = rSettings;
+				
+				//create all the different pieces and then jam them into the settings panel
 				let settingsPanel = createSettingsPanel(
 				createTextBox("prefix", pfix.description, pSettings),
 				createTextBox("suffix", sfix.description, sSettings),
 				createTextBox("searchReplace", srp.description, rSettings),
-				createNote(srp.note)
+				createGroup([
+				createNote(srp.note1, noteHeaderStyle),
+				createNote(srp.note2, noteStyle),
+				createNote(srp.note3, noteStyle),
+				createNote(srp.note4, noteStyle),
+				createNote(srp.note5, noteStyle)
+				])
 				);
 				
 				return settingsPanel;

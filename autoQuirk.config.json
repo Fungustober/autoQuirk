@@ -1,11 +1,7 @@
 {
-	"all": {
-		"general": {
-			"prefix": "",
-			"suffix": ""
-		},
-		"sr": {
-			"searchReplace": ""
-		}
-	}
+    "settings": {
+        "prefix": "",
+        "suffix": "",
+        "searchReplace": ""
+    }
 }
