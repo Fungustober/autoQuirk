@@ -3,6 +3,7 @@ A discord plugin that automatically styles your text like Homestuck trolls. Curr
 
 <img width="443" alt="quirk setup screen" src="https://github.com/Fungustober/autoQuirk/blob/main/example%201.png">
 <img width="443" alt="quirk example" src="https://github.com/Fungustober/autoQuirk/blob/main/example%202.png">
+<img width="443" alt="quirk example" src="https://github.com/Fungustober/autoQuirk/blob/main/example%203.png">
 
 Anything before the > is the text that you want to replace. Anything after the > but before the ; is what you want to replace that text with. If you want to replace > or ; you'll need to put \ before them, like so:
 
