@@ -20,7 +20,7 @@ module.exports = (_ => {
 	const changeLog = {
 		/*
 		Fixes:
-        - Added more error handling.
+		- Added more error handling.
 		Shiny New Things:
 		- Slowly working on removing the outside library dependencies.
 		- Made the settings screen look good.
