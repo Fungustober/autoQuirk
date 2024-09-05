@@ -1,7 +1,7 @@
 /**
 *@name autoQuirk
 *@author Fungustober
-*@version 0.4.3
+*@version 0.4.4
 *@description Automatically style your text like Homestuck trolls.
 */
 
@@ -21,10 +21,12 @@ module.exports = (_ => {
 		/*
 		Fixes:
 		- Added more error handling.
+		- Squashed bugs introduced by simplifying the settings structure.
 		Shiny New Things:
 		- Slowly working on removing the outside library dependencies.
 		- Made the settings screen look good.
 		- Simplified the settings structure.
+		- Split the settings screen into two parts and moved the instructions for better clarity.
         */
 	};
 	
@@ -36,22 +38,44 @@ module.exports = (_ => {
 	
 	//Settings creation functions & variables
 	
-	//PUT CONSTS HERE
 	const wrapperStyle = "margin-bottom: 8px; width: 100%;";
 	const boxLabelStyle = "position: relative; display: inline; flex: 1 1 auto; color: var(--header-primary); line-height: 24px; font-size: 16px; display:inline-block; margin-left:0; margin-right: auto; width:45%;";
 	const boxStyle = "position: relative; padding: 8px 8px 8px 8px; font-size: 16px; color: var(--header-secondary); background-color: var(--input-background); display:inline-block; margin-right:0; margin-left: auto; width:50%;";
-	const noteHeaderStyle = "color: var(--header-primary); line-height: 12px; font-size: 14px; font-weight: bold; margin-top: 8px;";
+	const noteHeaderStyle = "color: var(--header-primary); line-height: 12px; font-size: 14px; font-weight: bold; margin-top: 20px;";
 	const noteStyle = "color: var(--header-secondary); line-height: 12px; font-size: 14px;";
+	const titleStyle = "color: var(--header-primary); margin-bottom: 8px; font-size: 16px; font-weight: bold";
+	const subsectionStyle = "margin-bottom: 16px; width: 100%;"
 	
 	function createSettingsPanel(box1, box2, box3, goop){
 				
-		//create the holder div
+		//create the main div
 		let settingsPanel = document.createElement("div");
 		//set its id
 		settingsPanel.id = "autoQuirk_Settings";
 		
-		//populate it with the child elements
-		settingsPanel.append(goop, box1, box2, box3);
+		//create the two subsections
+		let simpleDiv = document.createElement("div");
+		simpleDiv.style = subsectionStyle;
+		
+		let advancedDiv = document.createElement("div");
+		advancedDiv.style = subsectionStyle;
+		
+		//create the two titles
+		let simpleLabel = document.createElement("h1");
+		simpleLabel.textContent = "Simple";
+		simpleLabel.style = titleStyle;
+
+		let advancedLabel = document.createElement("h1");
+		advancedLabel.textContent = "Advanced";
+		advancedLabel.style = titleStyle;
+		
+		//put the elements into their proper subsections
+		simpleDiv.append(simpleLabel, box1, box2);
+		
+		advancedDiv.append(advancedLabel, box3, goop);
+		
+		//put the subsections into the main div
+		settingsPanel.append(simpleDiv, advancedDiv);
 		
 		return settingsPanel;
 	}
@@ -173,7 +197,7 @@ module.exports = (_ => {
 				this.defaults = {
 					prefix:		{value: "", 	description: "Prefix"},
 					suffix:		{value: "", 	description: "Suffix"},
-					searchReplace: {value: "",	description: "Search/Replace", note1:"How to Use:", note2:"- Put > between searcher and replacer.", note3:"- Put ; between entries.", note5:"- Do NOT put a space between the ; and the next entry.", note4:"- Put \\ before any > or ; that you want to be replaced by something else or replace something else."}
+					searchReplace: {value: "",	description: "Search/Replace", note1:"How to Use the Search/Replace:", note2:"- Put > between what you want to replace and what you want to replace it with. Example: E>3", note3:"- Put ; after each entry. Example: e>3;E>3;", note4:"- Put \\ before any > or ; that you use in the search/replace box. Example: e\\>>e-\\>;"}
 				};
 				this.modulePatches = {
 					before: [
@@ -184,10 +208,18 @@ module.exports = (_ => {
 						"ChannelTextAreaContainer"
 					]
 				};
+				let stngs = BdApi.Data.load("autoQuirk", "settings");
+				tempSettings["prefix"] = stngs["prefix"];
+				tempSettings["suffix"] = stngs["suffix"];
+				tempSettings["searchReplace"] = stngs["searchReplace"];
 			}
 			
 			onStart () {
 				BDFDB.PatchUtils.forceAllUpdates(this);
+				let stngs = BdApi.Data.load("autoQuirk", "settings");
+				tempSettings["prefix"] = stngs["prefix"];
+				tempSettings["suffix"] = stngs["suffix"];
+				tempSettings["searchReplace"] = stngs["searchReplace"];
 			}
 			
 			onStop () {
@@ -222,8 +254,7 @@ module.exports = (_ => {
 				createNote(srp.note1, noteHeaderStyle),
 				createNote(srp.note2, noteStyle),
 				createNote(srp.note3, noteStyle),
-				createNote(srp.note4, noteStyle),
-				createNote(srp.note5, noteStyle)
+				createNote(srp.note4, noteStyle)
 				])
 				);
 				
@@ -259,7 +290,7 @@ module.exports = (_ => {
 				//put the message into a variable
 				let postProcess = messageText;
 				//put the search/replace string into a variable
-				let sr = this.settings.sr.searchReplace;
+				let sr = tempSettings["searchReplace"];
 				//TODO: Add various handlers for various cases
 				//check to see if the user actually has anything in the search/replace text box
 				if(sr != ""){
@@ -347,14 +378,14 @@ module.exports = (_ => {
 				//put the processed text into another variable
 				let fText = postProcess;
 				//has the user put something into the prefix box?
-				if (this.settings.general.prefix != ""){
+				if (tempSettings["prefix"] != ""){
 					//if so, add it to the front of the string
-					ftext = this.settings.general.prefix + ftext;
+					fText = tempSettings["prefix"] + fText;
 				}
 				//has the user put something into the suffix box?
-				if (this.settings.general.suffix != ""){
+				if (tempSettings["suffix"] != ""){
 					//if so, add it to the end of the string
-					fText += this.settings.general.suffix;
+					fText += tempSettings["suffix"];
 				}
 				//return the final text
 				return fText;
