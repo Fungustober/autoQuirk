@@ -1,7 +1,7 @@
 /**
  *@name autoQuirk
  *@author Fungustober
- *@version 1.0.0
+ *@version 1.0.1
  *@description Automatically style your text like Homestuck trolls.
  */
 
@@ -13,24 +13,20 @@
 // 		1. Replace the code that allows us to do the settings panel stuff - DONE
 // 		2. Replace the code that allows us to do the message stuff - DONE
 // 		3. Remove the code that gets the library - DONE
-// - Create a changelog displayer
+// - Create a changelog displayer - DONE
+// - Figure out what's next
+// 		- Regex maybe?
 
-const pluginVersion = "1.0.0";
+const pluginVersion = "1.0.1";
 
 const changelog = {
-	description: "With the release of version 1.0.0, autoQuirk has been revamped significantly. Here's what's been fixed or added in this update and previous updates that led up to this update.",
+	description: "A few minor changes.",
 	updates: [
-		"Reworked the settings screen code to no longer rely on outside libraries. (v0.4.2)",
-		"Improved the look of the settings screen. (v0.4.3)",
-		"Split the settings screen into two parts and moved the instructions for better clarity. (v0.4.4)",
-		"Reworked the patching code to no longer rely on outside libraries. (v1.0.0)",
-		"Added a changelog displaying system. (v1.0.0)"
+		"Improved the look of the examples in the instructions for the search/replace."
 	],
 	fixes: [
-		"Added more error handling to help make sure the user can't run into errors caused by weird edge cases. (v0.4.0)",
-		"Simplified the settings structure. (v0.4.3)",
-		"Squashed some bugs introduced by simplifying the settings structure. (v0.4.4)",
-		"Added comments everywhere. (v0.4.0, v0.4.1, v0.4.2, v0.4.3, v0.4.4, v1.0.0)"
+		"Made the instructions more understandable.",
+		"Improved the code that handles changelog displaying."
 	]
 };
 
@@ -47,6 +43,9 @@ const boxLabelStyle = "position: relative; display: inline; flex: 1 1 auto; colo
 const boxStyle = "position: relative; padding: 8px 8px 8px 8px; font-size: 16px; color: var(--header-secondary); background-color: var(--input-background); display:inline-block; margin-right:0; margin-left: auto; width:50%;";
 const noteHeaderStyle = "color: var(--header-primary); line-height: 12px; font-size: 14px; font-weight: bold; margin-top: 20px;";
 const noteStyle = "color: var(--header-secondary); line-height: 14px; font-size: 14px;";
+const exampleInitialStyle = "color: var(--text-muted); line-height: 12px; font-size: 12px; margin-left: 15px;";
+const exampleStyle = "color: var(--text-muted); line-height: 12px; font-size: 12px; background-color: var(--input-background); padding-left: 5px; padding-right: 5px;"
+const exampleNoteStyle = "color: var(--text-muted); line-height: 12px; font-size: 12px;";
 const titleStyle = "color: var(--header-primary); margin-bottom: 8px; font-size: 16px; font-weight: bold";
 const subsectionStyle = "margin-bottom: 16px; width: 100%;"
 
@@ -69,10 +68,16 @@ module.exports = class autoQuirk {
             searchReplace: {
                 value: "",
                 description: "Search/Replace",
-                note1: "How to Use the Search/Replace:",
-                note2: "- Put > between what you want to replace and what you want to replace it with. Example: E>3",
-                note3: "- Put ; after each entry. Example: e>3;E>3;",
-                note4: "- Put \\ before any > or ; that you use in the search/replace box. Example: e\\>>e-\\>;"
+                noteHeader: "How to Use the Search/Replace:",
+                note1: "- Put > between what you want to replace and what you want to replace it with.", 
+				example1a: "E>3",
+				example1b: "This turns every E into 3.",
+				note2: "- Put ; after each entry.",
+				example2a: "e>3;E>3;",
+				example2b: "This turns every e or E into 3.",
+                note3: "- Put \\ before any > or ; that you want to be replaced or replace something.",
+				example3a: "e\\>>e-\\>;'>\\;;",
+				example3b: "This turns every e> into e-> and every ' into ;."
             }
         };
     }
@@ -95,9 +100,12 @@ module.exports = class autoQuirk {
 		tempSettings["pluginVersion"] = stngs["pluginVersion"];
 		//check to see if the user has had a previous version the program
 		if (tempSettings["pluginVersion"] != pluginVersion){
-			tempSettings["pluginVersion"] = pluginVersion;
-			BdApi.Data.save("autoQuirk", "settings", tempSettings);
+			//do the changelog showing first, so if there's an error during its execution, the user will still be able to see the changelog later
 			this.showChangelog();	
+			//set the plugin version in temporary memory
+			tempSettings["pluginVersion"] = pluginVersion;
+			//then write it to permanent memory to make sure the user won't get the popup every time the plugin starts
+			BdApi.Data.save("autoQuirk", "settings", tempSettings);
 		}
     }
 
@@ -131,10 +139,13 @@ module.exports = class autoQuirk {
                 this.createTextBox("suffix", sfix.description, sSettings),
                 this.createTextBox("searchReplace", srp.description, rSettings),
                 this.createGroup([
-                        this.createNote(srp.note1, noteHeaderStyle),
+                        this.createNote(srp.noteHeader, noteHeaderStyle),
+                        this.createNote(srp.note1, noteStyle),
+						this.createExample(srp.example1a, srp.example1b),
                         this.createNote(srp.note2, noteStyle),
+						this.createExample(srp.example2a, srp.example2b),
                         this.createNote(srp.note3, noteStyle),
-                        this.createNote(srp.note4, noteStyle)
+						this.createExample(srp.example3a, srp.example3b)
                     ]));
 
         return settingsPanel;
@@ -331,6 +342,39 @@ module.exports = class autoQuirk {
         //send it back now
         return noteElement;
     }
+	
+	createExample(exampleText, exampleNoteText = null) {
+		//exampleNoteText is nullable, just in case
+		
+		//div
+		let exElement = document.createElement("div");
+		
+		//start creating the example text
+		let textElement = document.createElement("span");
+		textElement.textContent = "Example: ";
+		textElement.style = exampleInitialStyle;
+		
+		//create the example
+		let example = document.createElement("span");
+		example.textContent = exampleText;
+		example.style = exampleStyle;
+		
+		//create the example note, if it exists
+		if (exampleNoteText != null){
+			let noteElement = document.createElement("span");
+			noteElement.textContent = " — " + exampleNoteText;
+			noteElement.style = exampleNoteStyle;
+			
+			//stitch it together
+			exElement.append(textElement, example, noteElement);
+		}else{
+			//stitch it together, but without the out-of-scope noteElement, so no errors occur
+			exElement.append(textElement, example);
+		}
+		
+		//then send it back
+		return exElement;
+	}
 
     createGroup(elementsToGroup) {
         //create a div
@@ -367,21 +411,45 @@ module.exports = class autoQuirk {
 		//create the version description
 		let logDescription = this.createNote(changelog["description"], noteStyle);
 		let header = this.createGroup([versionNum, logDescription]);
+		//define updateSection and fixSection up here to stop any scope issues
+		let updateSection = null;
+		let fixSection = null;
 		
-		//create the headers for the updates section and the fixes section
-		let updateTitle = this.createNote("Updates:", logTitleStyle);
-		let fixTitle = this.createNote("Fixes:", logTitleStyle);
+		let updatesNotNull = false;
+		let fixesNotNull = false;
 		
-		//create the lists of updates and fixes
-		let updateList = this.createList(changelog["updates"], listStyle);
-		let fixList = this.createList(changelog["fixes"], listStyle);
+		//create the header, list, and group for the updates section if there are updates
+		if (changelog["updates"].length > 0)
+		{
+			updatesNotNull = true;
+			let updateTitle = this.createNote("Updates:", logTitleStyle);
+			let updateList = this.createList(changelog["updates"], listStyle);
+			updateSection = this.createGroup([updateTitle, updateList]);
+		}
 		
-		let updateSection = this.createGroup([updateTitle, updateList]);
-		let fixSection = this.createGroup([fixTitle, fixList]);
+		//create the header, list, and group for the fixes section if there are fixes
+		if (changelog["fixes"].length > 0)
+		{
+			fixesNotNull = true;
+			let fixTitle = this.createNote("Fixes:", logTitleStyle);
+			let fixList = this.createList(changelog["fixes"], listStyle);
+			fixSection = this.createGroup([fixTitle, fixList]);
+		}
 		
 		//create a main holder div and put everything into it
 		let mainDiv = document.createElement("div");
-		mainDiv.append(header, updateSection, fixSection);
+		//add the header to the mainDiv
+		mainDiv.append(header);
+		//if there's updates, add them to the mainDiv
+			//technically the == true is redundant here, but I've had a number of incidents with programming in the past where just if(bool)
+			//doesn't work right, so I do this just in case
+		if (updatesNotNull == true){
+			mainDiv.append(updateSection);
+		}
+		//if there's fixes, add them to the mainDiv
+		if (fixesNotNull == true){
+			mainDiv.append(fixSection);
+		}
 		
 		//convert the html into react
 		let reactComponent = BdApi.React.createElement(BdApi.ReactUtils.wrapElement(mainDiv)); 
