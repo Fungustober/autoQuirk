@@ -1,8 +1,8 @@
 /**
  *@name autoQuirk
  *@author Fungustober
- *@version 1.0.2
- *@description Automatically style your text like Homestuck trolls.
+ *@version 1.0.3
+ *@description Automatically styles your messages.
  */
 
 //TODO:
@@ -14,18 +14,37 @@
 // 		2. Replace the code that allows us to do the message stuff - DONE
 // 		3. Remove the code that gets the library - DONE
 // - Create a changelog displayer - DONE
-// - Figure out what's next
+// - Figure out what's next - IN PROGRESS
 // 		- Regex maybe?
 
-const pluginVersion = "1.0.2";
+// PLANNING FOR FUTURE FEATURES:
+// Maybe the Regex should be its own box so we can have more than one thing in the advanced section
+// So there's "simple search/replace" and "regex search/replace"
+// Could it be split into two things? i.e. Regex Search & Regex Replace
+// And we can define the area that a regex search/replace is in with something like /regexhere/, so /regex1here/ /regex2here/
+// Problem 1: that conflicts with what is established in the simple search/replace
+// Problem 2: this could create "desyncs" between the search and replace very easily
+// We can do something like: /regex_searcher_here/ > /regex_replacer_here/;
+// My main worry with that is that we could run into problems very easily where someone has to crawl through a lot of text to get to the one they
+	// want to edit
+// Can we make the textboxes have text wrap? yes
+// Is there anything else we can add to the simple section? Prefix, suffix, ???
+// What about a signature?
+// You can have a forum signature thing, and then activate it by typing in a pre-determined character sequence
+// Anything else?
+// Can we define simple tags for colors?
+// That seems dangerous. Would this be something that only happens on your end, or on everyone's end? I'm pretty sure discord text-ifies html tags
+	// that get sent through sendMessage, so even if we wanted to, it wouldn't even work.
+
+const pluginVersion = "1.0.3";
 
 const changelog = {
-	description: "One small change.",
+	description: "Additional small changes.",
 	updates: [
-		//"None"
 	],
 	fixes: [
-		"Improved the code by removing the .innerhtml and .outerhtml invocations."
+		"Added to the explanation of the Search/Replace function.",
+		"Made the Search/Replace box multi-line for better user visibility."
 	]
 };
 
@@ -38,8 +57,11 @@ const tempSettings = {
 
 //styling constants for the settings menu
 const wrapperStyle = "margin-bottom: 8px; width: 100%;";
-const boxLabelStyle = "position: relative; display: inline; flex: 1 1 auto; color: var(--header-primary); line-height: 24px; font-size: 16px; display:inline-block; margin-left:0; margin-right: auto; width:45%;";
+const areaWrapperStyle = "margin-bottom: 8px; display: flex; align-items: top; margin-right: 10px;";
+const boxLabelStyle = "position: relative; flex: 1 1 auto; color: var(--header-primary); line-height: 24px; font-size: 16px; display:inline-block; margin-left:0; margin-right: auto; width:45%;";
+const areaLabelStyle = "position: relative; flex: 1 1 auto; color: var(--header-primary); line-height: 24px; font-size: 16px; display:inline-block; margin-left:0; margin-right: auto; width:45%;";
 const boxStyle = "position: relative; padding: 8px 8px 8px 8px; font-size: 16px; color: var(--header-secondary); background-color: var(--input-background); display:inline-block; margin-right:0; margin-left: auto; width:50%;";
+const areaStyle = "resize: none; position: relative; padding: 8px 8px 8px 8px; font-size: 16px; color: var(--header-secondary); background-color: var(--input-background); display:inline-block; margin-right:0; margin-left: auto; width:50%; flex: 1 1 auto;";
 const noteHeaderStyle = "color: var(--header-primary); line-height: 12px; font-size: 14px; font-weight: bold; margin-top: 20px;";
 const noteStyle = "color: var(--header-secondary); line-height: 14px; font-size: 14px;";
 const exampleInitialStyle = "color: var(--text-muted); line-height: 12px; font-size: 12px; margin-left: 15px;";
@@ -58,11 +80,13 @@ module.exports = class autoQuirk {
         this.defaults = {
             prefix: {
                 value: "",
-                description: "Prefix"
+                description: "Prefix",
+				placeholder: "Enter text to add a prefix..."
             },
             suffix: {
                 value: "",
-                description: "Suffix"
+                description: "Suffix",
+				placeholder: "Enter text to add a suffix..."
             },
             searchReplace: {
                 value: "",
@@ -74,9 +98,13 @@ module.exports = class autoQuirk {
 				note2: "- Put ; after each entry.",
 				example2a: "e>3;E>3;",
 				example2b: "This turns every e or E into 3.",
+				note4: "- Don't put spaces between your text and the > or ;, unless you want to have extra spaces in your text.",
+				example4a: "e > E ; b > B ;",
+				example4b: "This turns only \"e \" into \" E \" and only \" b \" into \" B \".",
                 note3: "- Put \\ before any > or ; that you want to be replaced or replace something.",
 				example3a: "e\\>>e-\\>;'>\\;;",
-				example3b: "This turns every e> into e-> and every ' into ;."
+				example3b: "This turns every e> into e-> and every ' into ;.",
+				placeholder: "Add search/replace statements here..."
             }
         };
     }
@@ -122,6 +150,7 @@ module.exports = class autoQuirk {
 
         //load the settings
         let loadedSettings = BdApi.Data.load("autoQuirk", "settings");
+		
 
         //put them into variables
         let pSettings = loadedSettings["prefix"];
@@ -134,15 +163,17 @@ module.exports = class autoQuirk {
 
         //create all the different pieces and then jam them into the settings panel
         let settingsPanel = this.createSettingsPanel(
-                this.createTextBox("prefix", pfix.description, pSettings),
-                this.createTextBox("suffix", sfix.description, sSettings),
-                this.createTextBox("searchReplace", srp.description, rSettings),
+                this.createTextBox("prefix", pfix.description, pSettings, pfix.placeholder),
+                this.createTextBox("suffix", sfix.description, sSettings, sfix.placeholder),
+                this.createTextArea("searchReplace", srp.description, rSettings, srp.placeholder),
                 this.createGroup([
                         this.createNote(srp.noteHeader, noteHeaderStyle),
                         this.createNote(srp.note1, noteStyle),
 						this.createExample(srp.example1a, srp.example1b),
                         this.createNote(srp.note2, noteStyle),
 						this.createExample(srp.example2a, srp.example2b),
+						this.createNote(srp.note4, noteStyle),
+						this.createExample(srp.example4a, srp.example4b),
                         this.createNote(srp.note3, noteStyle),
 						this.createExample(srp.example3a, srp.example3b)
                     ]));
@@ -184,6 +215,10 @@ module.exports = class autoQuirk {
                 else {
                     //do things based on what the character is
                     switch (sr[i]) {
+						//if it's a \n (somehow), then
+					case "\n":
+						//do nothing, skip it
+						break;
                         //if it's a \, then
                     case "\\":
                         //tell the system the user has entered an escape character
@@ -294,10 +329,8 @@ module.exports = class autoQuirk {
         return settingsPanel;
     }
 
-    createTextBox(boxName, boxLabel, boxValue) {
-        //TO DO: Add CSS styling to elements
-
-        //create a div to hold the text box stuff
+    createTextBox(boxName, boxLabel, boxValue, boxPlaceholder = null) {
+		//create a div to hold the text box stuff
         let textBoxElement = document.createElement("div");
         textBoxElement.classList.add("setting");
         textBoxElement.classList.add("fungustober");
@@ -307,11 +340,15 @@ module.exports = class autoQuirk {
         let elementLabel = document.createElement("div");
         elementLabel.textContent = boxLabel;
         elementLabel.style = boxLabelStyle;
+		elementLabel.for = boxName;
 
         //create the actual text box
         let elementInput = document.createElement("input");
         elementInput.type = "text";
         elementInput.name = boxName;
+		if (boxPlaceholder != null){
+			elementInput.placeholder = boxPlaceholder;
+		}
         elementInput.style = boxStyle;
         //add the data and a listener to update the data
         elementInput.value = boxValue;
@@ -326,6 +363,42 @@ module.exports = class autoQuirk {
         //send the element back
         return textBoxElement;
     }
+
+	createTextArea(areaName, areaLabel, areaValue, areaPlaceholder = null) {
+		//div
+		let textAreaElement = document.createElement("div");
+		textAreaElement.classList.add("setting");
+		textAreaElement.classList.add("fungustober");
+		textAreaElement.style = areaWrapperStyle;
+		
+		//label
+		let elementLabel = document.createElement("div");
+		elementLabel.textContent = areaLabel;
+		elementLabel.style = areaLabelStyle;
+		elementLabel.for = areaName;
+		
+		//text
+		let areaInput = document.createElement("textarea");
+		areaInput.name = areaName;
+		areaInput.id = areaName;
+		//TODO: maybe let the user control how many rows there are?
+		areaInput.rows = 5;
+		if (areaPlaceholder != null){
+			areaInput.placeholder = areaPlaceholder;
+		}
+		areaInput.style = areaStyle;
+		areaInput.value = areaValue;
+		areaInput.addEventListener("change", () => {
+			tempSettings[areaName] = areaInput.value;
+			BdApi.Data.save("autoquirk", "settings", tempSettings);
+		});
+		
+		//parent
+		textAreaElement.append(elementLabel, areaInput);
+		
+		//return
+		return textAreaElement;
+	}
 
     createNote(noteText, style) {
         //div
