@@ -1,7 +1,7 @@
 /**
  *@name autoQuirk
  *@author Fungustober
- *@version 1.0.1
+ *@version 1.0.2
  *@description Automatically style your text like Homestuck trolls.
  */
 
@@ -9,7 +9,7 @@
 // - Remove old to-do list - DONE
 // - Comment everything - MOSTLY DONE UNTIL I ADD MORE STUFF
 // - Add extra handling to protect the user from themselves - DONE
-// - Remove the BDFDB Library stuff and replace it with our own code
+// - Remove the BDFDB Library stuff and replace it with our own code - DONE
 // 		1. Replace the code that allows us to do the settings panel stuff - DONE
 // 		2. Replace the code that allows us to do the message stuff - DONE
 // 		3. Remove the code that gets the library - DONE
@@ -17,16 +17,15 @@
 // - Figure out what's next
 // 		- Regex maybe?
 
-const pluginVersion = "1.0.1";
+const pluginVersion = "1.0.2";
 
 const changelog = {
-	description: "A few minor changes.",
+	description: "One small change.",
 	updates: [
-		"Improved the look of the examples in the instructions for the search/replace."
+		//"None"
 	],
 	fixes: [
-		"Made the instructions more understandable.",
-		"Improved the code that handles changelog displaying."
+		"Improved the code by removing the .innerhtml and .outerhtml invocations."
 	]
 };
 
@@ -101,7 +100,7 @@ module.exports = class autoQuirk {
 		//check to see if the user has had a previous version the program
 		if (tempSettings["pluginVersion"] != pluginVersion){
 			//do the changelog showing first, so if there's an error during its execution, the user will still be able to see the changelog later
-			this.showChangelog();	
+			this.showChangelog();
 			//set the plugin version in temporary memory
 			tempSettings["pluginVersion"] = pluginVersion;
 			//then write it to permanent memory to make sure the user won't get the popup every time the plugin starts
@@ -377,15 +376,17 @@ module.exports = class autoQuirk {
 	}
 
     createGroup(elementsToGroup) {
-        //create a div
+		//create a div
         let groupElement = document.createElement("div");
         //give it the appropriate style
         groupElement.style = wrapperStyle;
 
         //shove the elements into it. Note: doesn't work with input boxes.
         for (let i = 0; i < elementsToGroup.length; i++) {
-            let temp = elementsToGroup[i].outerHTML;
-            groupElement.innerHTML += temp;
+            let temp = elementsToGroup[i];
+            //apparently you can just do this and it works fine
+			//I have a memory of this not working for some reason, but I must have misremembered
+			groupElement.appendChild(temp);
         }
         return groupElement;
     }
@@ -397,9 +398,9 @@ module.exports = class autoQuirk {
 			let listElement = document.createElement("li");
 			listElement.textContent = "    - " + listItems[item];
 			listElement.style = "margin-bottom: 4px;";
-			let temp = listElement.outerHTML;
-			list.append(listElement);
-		console.log(list);
+			let temp = listElement;
+			list.appendChild(listElement);
+		//console.log(list);
 		}
 		return list;
 	}
