@@ -1,7 +1,7 @@
 /**
  *@name autoQuirk
  *@author Fungustober
- *@version 1.0.3
+ *@version 1.0.4
  *@description Automatically styles your messages.
  */
 
@@ -36,15 +36,14 @@
 // That seems dangerous. Would this be something that only happens on your end, or on everyone's end? I'm pretty sure discord text-ifies html tags
 	// that get sent through sendMessage, so even if we wanted to, it wouldn't even work.
 
-const pluginVersion = "1.0.3";
+const pluginVersion = "1.0.4";
 
 const changelog = {
-	description: "Additional small changes.",
+	description: "",
 	updates: [
 	],
 	fixes: [
-		"Added to the explanation of the Search/Replace function.",
-		"Made the Search/Replace box multi-line for better user visibility."
+		"Squashed a bug that was causing odd behavior with saving autoQuirk's settings."
 	]
 };
 
@@ -54,6 +53,8 @@ const tempSettings = {
     suffix: "",
     searchReplace: ""
 };
+
+let settingsLoaded = false
 
 //styling constants for the settings menu
 const wrapperStyle = "margin-bottom: 8px; width: 100%;";
@@ -119,12 +120,14 @@ module.exports = class autoQuirk {
             //then set the message to the formatted text
             args[1].content = formattedMessage;
         });
-        //make absolutely sure that we load in the data
-        let stngs = BdApi.Data.load("autoQuirk", "settings");
-        tempSettings["prefix"] = stngs["prefix"];
-        tempSettings["suffix"] = stngs["suffix"];
-        tempSettings["searchReplace"] = stngs["searchReplace"];
-		tempSettings["pluginVersion"] = stngs["pluginVersion"];
+        //make absolutely sure that we load in the data, as long as it isn't already loaded
+        if (settingsLoaded == false) {
+			let stngs = BdApi.Data.load("autoQuirk", "settings");
+			tempSettings["prefix"] = stngs["prefix"];
+			tempSettings["suffix"] = stngs["suffix"];
+			tempSettings["searchReplace"] = stngs["searchReplace"];
+			tempSettings["pluginVersion"] = stngs["pluginVersion"];
+		}
 		//check to see if the user has had a previous version the program
 		if (tempSettings["pluginVersion"] != pluginVersion){
 			//do the changelog showing first, so if there's an error during its execution, the user will still be able to see the changelog later
@@ -142,30 +145,36 @@ module.exports = class autoQuirk {
     }
 
     getSettingsPanel() {
-
+		//console.log(tempSettings)
+		
         //get all of the information in short names so I don't have to write things over and over
         let pfix = this.defaults.prefix;
         let sfix = this.defaults.suffix;
         let srp = this.defaults.searchReplace;
 
-        //load the settings
-        let loadedSettings = BdApi.Data.load("autoQuirk", "settings");
+		//if settings are already loaded, do not reload the settings
+		if (settingsLoaded == false) {
+			//load the settings
+			let loadedSettings = BdApi.Data.load("autoQuirk", "settings");
+	
+			//put them into variables
+			let pSettings = loadedSettings["prefix"];
+			//and also load the temp settings with the correct values
+			tempSettings["prefix"] = pSettings;
+			let sSettings = loadedSettings["suffix"];
+			tempSettings["suffix"] = sSettings;
+			let rSettings = loadedSettings["searchReplace"];
+			tempSettings["searchReplace"] = rSettings;
+			settingsLoaded = true
+		}
 		
-
-        //put them into variables
-        let pSettings = loadedSettings["prefix"];
-        //and also load the temp settings with the correct values
-        tempSettings["prefix"] = pSettings;
-        let sSettings = loadedSettings["suffix"];
-        tempSettings["suffix"] = sSettings;
-        let rSettings = loadedSettings["searchReplace"];
-        tempSettings["searchReplace"] = rSettings;
-
+		//console.log(tempSettings)
+		
         //create all the different pieces and then jam them into the settings panel
         let settingsPanel = this.createSettingsPanel(
-                this.createTextBox("prefix", pfix.description, pSettings, pfix.placeholder),
-                this.createTextBox("suffix", sfix.description, sSettings, sfix.placeholder),
-                this.createTextArea("searchReplace", srp.description, rSettings, srp.placeholder),
+                this.createTextBox("prefix", pfix.description, tempSettings["prefix"], pfix.placeholder),
+                this.createTextBox("suffix", sfix.description, tempSettings["suffix"], sfix.placeholder),
+                this.createTextArea("searchReplace", srp.description, tempSettings["searchReplace"], srp.placeholder),
                 this.createGroup([
                         this.createNote(srp.noteHeader, noteHeaderStyle),
                         this.createNote(srp.note1, noteStyle),
@@ -353,6 +362,7 @@ module.exports = class autoQuirk {
         //add the data and a listener to update the data
         elementInput.value = boxValue;
         elementInput.addEventListener("change", () => {
+			//console.log("hi");
             tempSettings[boxName] = elementInput.value;
             BdApi.Data.save("autoQuirk", "settings", tempSettings);
         });
@@ -382,14 +392,16 @@ module.exports = class autoQuirk {
 		areaInput.name = areaName;
 		areaInput.id = areaName;
 		//TODO: maybe let the user control how many rows there are?
-		areaInput.rows = 5;
+		areaInput.rows = 3;
 		if (areaPlaceholder != null){
 			areaInput.placeholder = areaPlaceholder;
 		}
 		areaInput.style = areaStyle;
 		areaInput.value = areaValue;
 		areaInput.addEventListener("change", () => {
+			//console.log(tempSettings);
 			tempSettings[areaName] = areaInput.value;
+			//console.log(tempSettings);
 			BdApi.Data.save("autoquirk", "settings", tempSettings);
 		});
 		
