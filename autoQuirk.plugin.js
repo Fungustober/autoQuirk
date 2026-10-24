@@ -36,14 +36,14 @@
 // That seems dangerous. Would this be something that only happens on your end, or on everyone's end? I'm pretty sure discord text-ifies html tags
 	// that get sent through sendMessage, so even if we wanted to, it wouldn't even work.
 
-const pluginVersion = "1.0.4";
+const pluginVersion = "1.0.5";
 
 const changelog = {
 	description: "",
 	updates: [
 	],
 	fixes: [
-		"Squashed a bug that was causing odd behavior with saving autoQuirk's settings."
+		"Squashed a bug that was preventing the opening of settings."
 	]
 };
 
@@ -76,38 +76,35 @@ const updateNumStyle = "color: var(--header-primary); font-size: 18px; font-weig
 const logTitleStyle = "color: var(--header-primary); font-size: 18px; font-weight:bold";
 const listStyle = "color: var(--header-secondary); line-height: 16px; font-size: 14px;";
 
+const pfix = {
+	description: "Prefix",
+	placeholder: "Enter text to add a prefix..."
+};
+const sfix = {
+	description: "Suffix",
+	placeholder: "Enter text to add a suffix..."
+};
+const srp = {
+	description: "Search/Replace",
+	noteHeader: "How to Use the Search/Replace:",
+    note1: "- Put > between what you want to replace and what you want to replace it with.", 
+	example1a: "E>3",
+	example1b: "This turns every E into 3.",
+	note2: "- Put ; after each entry.",
+	example2a: "e>3;E>3;",
+	example2b: "This turns every e or E into 3.",
+	note4: "- Don't put spaces between your text and the > or ;, unless you want to have extra spaces in your text.",
+	example4a: "e > E ; b > B ;",
+	example4b: "This turns only \"e \" into \" E \" and only \" b \" into \" B \".",
+    note3: "- Put \\ before any > or ; that you want to be replaced or replace something.",
+	example3a: "e\\>>e-\\>;'>\\;;",
+	example3b: "This turns every e> into e-> and every ' into ;.",
+	placeholder: "Add search/replace statements here..."
+};
+
 module.exports = class autoQuirk {
-    load() {
-        this.defaults = {
-            prefix: {
-                value: "",
-                description: "Prefix",
-				placeholder: "Enter text to add a prefix..."
-            },
-            suffix: {
-                value: "",
-                description: "Suffix",
-				placeholder: "Enter text to add a suffix..."
-            },
-            searchReplace: {
-                value: "",
-                description: "Search/Replace",
-                noteHeader: "How to Use the Search/Replace:",
-                note1: "- Put > between what you want to replace and what you want to replace it with.", 
-				example1a: "E>3",
-				example1b: "This turns every E into 3.",
-				note2: "- Put ; after each entry.",
-				example2a: "e>3;E>3;",
-				example2b: "This turns every e or E into 3.",
-				note4: "- Don't put spaces between your text and the > or ;, unless you want to have extra spaces in your text.",
-				example4a: "e > E ; b > B ;",
-				example4b: "This turns only \"e \" into \" E \" and only \" b \" into \" B \".",
-                note3: "- Put \\ before any > or ; that you want to be replaced or replace something.",
-				example3a: "e\\>>e-\\>;'>\\;;",
-				example3b: "This turns every e> into e-> and every ' into ;.",
-				placeholder: "Add search/replace statements here..."
-            }
-        };
+    
+	load() {
     }
 
     start() {
@@ -146,12 +143,6 @@ module.exports = class autoQuirk {
 
     getSettingsPanel() {
 		//console.log(tempSettings)
-		
-        //get all of the information in short names so I don't have to write things over and over
-        let pfix = this.defaults.prefix;
-        let sfix = this.defaults.suffix;
-        let srp = this.defaults.searchReplace;
-
 		//if settings are already loaded, do not reload the settings
 		if (settingsLoaded == false) {
 			//load the settings
